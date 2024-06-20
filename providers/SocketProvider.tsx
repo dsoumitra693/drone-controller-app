@@ -1,55 +1,112 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react';
 
-interface ISocketContext{
-  sendData:(data:string)=>void;
-  recivedData:string;
-  isConnected:boolean;
-}
-interface SocketProviderProps{
-  children:React.ReactNode
+interface ISocketContext {
+  sendData: (data: string) => void;
+  receivedData: string;
+  isConnected: boolean;
 }
 
-const SERVER_URL = "ws://192.168.239.189:81"
+interface SocketProviderProps {
+  children: React.ReactNode;
+}
 
-const SocketContext = React.createContext<ISocketContext| null>(null)
+const SERVER_URL = "ws://192.168.192.189:81";
+
+const SocketContext = createContext<ISocketContext | null>(null);
 
 export const useSocket = () => {
   const context = useContext(SocketContext);
   if (!context) {
-      throw new Error("Socket context is not define");
+    throw new Error("Socket context is not defined");
   }
   return context;
 };
 
-
-const SocketProvider:React.FC<SocketProviderProps> = ({children}) => {
-  const [ws, setWs] = useState<WebSocket>();
-  const [isConnected, setIsConneted] = useState<boolean>(false)
-  const [data, setData] = useState<string>("")
+const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
+  const [ws, setWs] = useState<WebSocket | null>(null);
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const [receivedData, setReceivedData] = useState<string>("");
 
   useEffect(() => {
-    const socket = new WebSocket(SERVER_URL);
+    let socket: WebSocket | null = null;
+    let pingInterval: NodeJS.Timeout | null = null;
+    let pongTimeout: NodeJS.Timeout | null = null;
 
-    socket.onopen = () => {
-      setIsConneted(true)
+    const connectWebSocket = () => {
+      socket = new WebSocket(SERVER_URL);
       setWs(socket);
+
+      socket.onopen = () => {
+        setIsConnected(true);
+        console.log("WebSocket connected");
+
+        // Start the ping-pong mechanism
+        pingInterval = setInterval(() => {
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send("ping");
+
+            // Wait for pong response within 5 seconds
+            pongTimeout = setTimeout(() => {
+              if (isConnected) {
+                setIsConnected(false);
+                console.log("WebSocket disconnected due to no pong response");
+                if (socket) {
+                  socket.close();
+                }
+              }
+            }, 5000);
+          }
+        }, 10000); // Ping every 10 seconds
+      };
+
+      socket.onmessage = (e) => {
+        const message = e.data;
+
+        if (message === "pong") {
+          // Received pong response, clear the pong timeout
+          if (pongTimeout) {
+            clearTimeout(pongTimeout);
+          }
+        } else {
+          // Handle other incoming messages
+          setReceivedData(message);
+        }
+      };
+
+      socket.onerror = (e) => {
+        console.log('WebSocket Error:', e);
+        setIsConnected(false);
+      };
+
+      socket.onclose = (e) => {
+        console.log('WebSocket Connection Closed:', e);
+        setIsConnected(false);
+        if (pingInterval) {
+          clearInterval(pingInterval);
+        }
+        if (pongTimeout) {
+          clearTimeout(pongTimeout);
+        }
+        if (!e.wasClean) {
+          // Connection closed unexpectedly (not by client)
+          setTimeout(connectWebSocket, 3000); // Reconnect after 3 seconds
+        }
+      };
     };
 
-    socket.onmessage = (e) => {
-      setData(e.data)
-    };
-
-    socket.onerror = (e) => {
-      console.error('WebSocket Error');
-    };
-
-    socket.onclose = (e) => {
-      setIsConneted(false)
-    };
+    connectWebSocket();
 
     return () => {
-      socket?.close();
-      setIsConneted(false)
+      if (socket) {
+        socket.close();
+        setIsConnected(false);
+      }
+      if (pingInterval) {
+        clearInterval(pingInterval);
+      }
+      if (pongTimeout) {
+        clearTimeout(pongTimeout);
+      }
     };
   }, []);
 
@@ -58,11 +115,12 @@ const SocketProvider:React.FC<SocketProviderProps> = ({children}) => {
       ws.send(data);
     }
   };
+
   return (
-    <SocketContext.Provider value={{ sendData, isConnected,  recivedData:data}}>
+    <SocketContext.Provider value={{ sendData, isConnected, receivedData }}>
       {children}
     </SocketContext.Provider>
-  )
-}
+  );
+};
 
-export default SocketProvider
+export default SocketProvider;

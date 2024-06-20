@@ -1,2 +1,5 @@
 export {default as Home} from './Home'
-export {default as Joistick} from './Joistick'
+export {default as Joystick} from './Joystick'
+export {default as Navbar} from './Navbar'
+export {default as BlurBg} from './BlurBg'
+export {default as Bottombar} from './Bottombar'
