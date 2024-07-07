@@ -26,6 +26,12 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "87cc09d7-5b7f-4321-9224-4192e133b71e"
+      }
+    },
+    "owner": "dsoumitra693"
   }
 }
