@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "drone-app",
-    "slug": "drone-app",
+    "name": "AeroPilot",
+    "slug": "aeropilot",
     "version": "1.0.0",
     "orientation": "portrait",
     "androidNavigationBar": {
