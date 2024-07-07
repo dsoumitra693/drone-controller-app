@@ -1,18 +1,22 @@
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View,StatusBar } from "react-native";
 import { Home } from "./components";
 import { SocketProvider } from "./providers";
 import { COLORS } from "./theme";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-
+import { useEffect } from "react";
+import * as ScreenOrientation from "expo-screen-orientation";
 
 export default function App() {
+
+  useEffect(() => {
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
+  }, [])
+  
 
   return (
     <GestureHandlerRootView>
       <SocketProvider>
         <View style={styles.App}>
-          <StatusBar hidden />
           <Home />
         </View>
       </SocketProvider>
@@ -26,7 +30,8 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     flex: 1,
-    backgroundColor: COLORS.black
+    backgroundColor: COLORS.black,
+    position:"absolute"
   }
 })
 

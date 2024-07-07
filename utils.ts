@@ -20,7 +20,7 @@ export const batteryConfig = [
         min: 26,
     },
     {
-        iconName: "battery-three-quarter",
+        iconName: "battery-three-quarters",
         color: COLORS.green,
         max: 75,
         min: 51,

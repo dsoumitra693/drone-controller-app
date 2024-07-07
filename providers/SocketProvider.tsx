@@ -1,8 +1,18 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
+interface IReceivedData {
+  rssi: number;
+  battery_level: number;
+  height: number;
+  distance: number;
+  motorOn:boolean;
+  name:string;
+  speed:number;
+}
+
 interface ISocketContext {
   sendData: (data: string) => void;
-  receivedData: string;
+  receivedData: IReceivedData;
   isConnected: boolean;
 }
 
@@ -10,7 +20,8 @@ interface SocketProviderProps {
   children: React.ReactNode;
 }
 
-const SERVER_URL = "ws://192.168.192.189:81";
+// const SERVER_URL = "ws://192.168.45.189:81";
+const SERVER_URL = "ws://192.168.243.189:81";
 
 const SocketContext = createContext<ISocketContext | null>(null);
 
@@ -25,7 +36,15 @@ export const useSocket = () => {
 const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const [ws, setWs] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
-  const [receivedData, setReceivedData] = useState<string>("");
+  const [receivedData, setReceivedData] = useState<IReceivedData>({
+    battery_level: 0,
+    distance: 0,
+    height: 0,
+    rssi: -100,
+    motorOn:false,
+    name:"Drone Name",
+    speed:0
+  });
 
   useEffect(() => {
     let socket: WebSocket | null = null;
@@ -60,26 +79,28 @@ const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
       };
 
       socket.onmessage = (e) => {
-        const message = e.data;
+        const data = JSON.parse(e.data);
 
-        if (message === "pong") {
+        if (!data) return;
+
+        if (data.msg === "pong") {
           // Received pong response, clear the pong timeout
           if (pongTimeout) {
             clearTimeout(pongTimeout);
           }
         } else {
           // Handle other incoming messages
-          setReceivedData(message);
+            setReceivedData(data);
         }
       };
 
       socket.onerror = (e) => {
-        console.log('WebSocket Error:', e);
+        console.log("WebSocket Error:", e);
         setIsConnected(false);
       };
 
       socket.onclose = (e) => {
-        console.log('WebSocket Connection Closed:', e);
+        console.log("WebSocket Connection Closed:", e);
         setIsConnected(false);
         if (pingInterval) {
           clearInterval(pingInterval);
@@ -88,7 +109,6 @@ const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
           clearTimeout(pongTimeout);
         }
         if (!e.wasClean) {
-          // Connection closed unexpectedly (not by client)
           setTimeout(connectWebSocket, 3000); // Reconnect after 3 seconds
         }
       };
@@ -113,6 +133,8 @@ const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
   const sendData = (data: string) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
       ws.send(data);
+    } else {
+      console.log("WebSocket is not open. Cannot send data.");
     }
   };
 
