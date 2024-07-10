@@ -28,7 +28,7 @@ const Joystick: React.FC<JoystickProps> = ({
   onMove,
   onStop,
   color = COLORS.yellow,
-  radius = 60,
+  radius = 80,
   style,
   isFixedX,
   isFixedY
@@ -144,7 +144,7 @@ const Joystick: React.FC<JoystickProps> = ({
   };
 
   return (
-    <GestureDetector gesture={panGesture}>
+    <GestureDetector gesture={panGesture} >
       <View style={styles.wrapper}>
         <Animated.View pointerEvents="none" style={[styles.nipple, animatedStyles]} />
       </View>
